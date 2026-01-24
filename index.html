@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matter Network Graph</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Vis.js -->
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="glass-header">
+            <div class="header-content">
+                <h1>Matter Network Graph</h1>
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Disconnected</span>
+                </div>
+            </div>
+            <div class="controls">
+                <button id="reconnectBtn" class="btn btn-secondary">Reconnect</button>
+                <button id="settingsBtn" class="btn btn-secondary"><i class="fa-solid fa-gear"></i> Settings</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <section class="panel direct-panel glass-panel">
+                <h2>Direct (WiFi)</h2>
+                <div id="direct-devices" class="device-list"></div>
+            </section>
+
+            <section class="panel middle-panel glass-panel">
+                <div class="middle-section">
+                    <h2>Bridges</h2>
+                    <div id="bridges-container" class="bridge-list"></div>
+                </div>
+            </section>
+
+            <section class="panel thread-panel glass-panel">
+                <h2>Thread Mesh</h2>
+                <div id="graph-container"></div>
+                <div class="thread-legend">
+                    <span class="legend-item"><span class="legend-dot router"></span> Router</span>
+                    <span class="legend-item"><span class="legend-dot reed"></span> REED</span>
+                    <span class="legend-item"><span class="legend-dot end-device"></span> End Device</span>
+                </div>
+            </section>
+
+            <aside class="sidebar glass-panel">
+                <h2>Node Details</h2>
+                <div id="node-details">
+                    <p class="placeholder-text">Select a node to view details</p>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal glass-panel">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-gear"></i> Server Settings</h2>
+                <button id="modalCloseBtn" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Home Assistant</h3>
+                    <div class="form-group">
+                        <label for="haHost">Host</label>
+                        <input type="text" id="haHost" placeholder="homeassistant.local">
+                    </div>
+                    <div class="form-group">
+                        <label for="haPort">Port</label>
+                        <input type="number" id="haPort" placeholder="8123">
+                    </div>
+                    <div class="form-group">
+                        <label for="haToken">Access Token</label>
+                        <input type="password" id="haToken" placeholder="Long-lived access token">
+                        <p class="form-hint">Go to HA Profile > Security > Long-Lived Access Tokens</p>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Python Matter Server</h3>
+                    <div class="form-group">
+                        <label for="matterPort">Port</label>
+                        <input type="number" id="matterPort" placeholder="5580">
+                        <p class="form-hint">Uses same host as Home Assistant</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="settingsCancelBtn" class="btn btn-secondary">Cancel</button>
+                <button id="settingsSaveBtn" class="btn btn-primary">Save & Reconnect</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/graph.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
