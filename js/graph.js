@@ -1074,6 +1074,7 @@ class NetworkGraph {
 
     getDeviceType(node) {
         // Matter device type IDs (from spec)
+        // Priority order matters - more specific/primary types should be checked first
         const deviceTypeNames = {
             // Lights
             256: 'Light',      // On/Off Light
@@ -1111,8 +1112,13 @@ class NetworkGraph {
             2128: 'Remote',    // Control Bridge
         };
 
+        // Priority types - these should win if present (primary function)
+        const priorityTypes = [106, 2112, 21, 10, 770]; // Motion, Presence, Contact, Lock, Thermostat
+
         // Check all endpoints for device types
         const attrs = node.attributes || {};
+        let foundTypes = [];
+
         for (const key of Object.keys(attrs)) {
             // Look for device type descriptors (endpoint/29/0)
             const match = key.match(/^(\d+)\/29\/0$/);
@@ -1122,14 +1128,28 @@ class NetworkGraph {
                     for (const dt of deviceTypes) {
                         const typeId = dt['0'] || dt[0];
                         if (typeId && deviceTypeNames[typeId]) {
-                            return deviceTypeNames[typeId];
+                            foundTypes.push(typeId);
                         }
                     }
                 }
             }
         }
 
-        // Fallback: check clusters on all endpoints
+        // Check for priority types first
+        for (const priorityId of priorityTypes) {
+            if (foundTypes.includes(priorityId)) {
+                return deviceTypeNames[priorityId];
+            }
+        }
+
+        // Return first found type
+        if (foundTypes.length > 0) {
+            return deviceTypeNames[foundTypes[0]];
+        }
+
+        // Fallback: check clusters on all endpoints (prioritize motion/contact)
+        let hasMotion = false, hasContact = false, hasTemp = false, hasHumidity = false;
+
         for (const key of Object.keys(attrs)) {
             const match = key.match(/^(\d+)\/29\/1$/);
             if (match) {
@@ -1139,12 +1159,18 @@ class NetworkGraph {
                 if (clusters.includes(6)) return 'Switch';   // On/Off
                 if (clusters.includes(258)) return 'Window'; // Window Covering
                 if (clusters.includes(257)) return 'Lock';   // Door Lock
-                if (clusters.includes(1026)) return 'Temperature Sensor';
-                if (clusters.includes(1029)) return 'Humidity Sensor';
-                if (clusters.includes(1030)) return 'Motion Sensor';  // Occupancy
-                if (clusters.includes(69)) return 'Contact Sensor';   // Boolean State
+                if (clusters.includes(1030)) hasMotion = true;   // Occupancy
+                if (clusters.includes(69)) hasContact = true;    // Boolean State
+                if (clusters.includes(1026)) hasTemp = true;     // Temperature
+                if (clusters.includes(1029)) hasHumidity = true; // Humidity
             }
         }
+
+        // Return sensor types in priority order
+        if (hasMotion) return 'Motion Sensor';
+        if (hasContact) return 'Contact Sensor';
+        if (hasTemp) return 'Temperature Sensor';
+        if (hasHumidity) return 'Humidity Sensor';
 
         return 'Device';
     }
