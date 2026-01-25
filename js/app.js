@@ -7,6 +7,8 @@ class App {
         this.haDevicesBySerial = {}; // HA device registry cache (by serial)
         this.matterConnected = false;
         this.haConnected = false;
+        this.changeLog = []; // Recent changes
+        this.maxLogEntries = 10;
 
         this.init();
     }
@@ -305,7 +307,7 @@ class App {
         }
     }
 
-    showUpdateNotification(nodeId) {
+    showUpdateNotification(nodeId, eventType = 'updated') {
         // Create or get the update indicator
         let indicator = document.querySelector('.update-indicator');
         if (!indicator) {
@@ -315,8 +317,11 @@ class App {
         }
 
         const nodeName = this.nodes[nodeId] ? this.graph.getDeviceName(this.nodes[nodeId]) : `Node ${nodeId}`;
-        indicator.textContent = `Updated: ${nodeName}`;
+        indicator.textContent = `${eventType === 'added' ? 'Added' : 'Updated'}: ${nodeName}`;
         indicator.classList.add('show');
+
+        // Add to change log
+        this.addChangeLogEntry(eventType, nodeName, nodeId);
 
         // Highlight the card if visible
         const card = document.querySelector(`.device-card[data-node-id="${nodeId}"], .bridge-card[data-node-id="${nodeId}"]`);
@@ -334,22 +339,74 @@ class App {
         }, 2000);
     }
 
+    addChangeLogEntry(eventType, nodeName, nodeId) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        this.changeLog.unshift({
+            time: timeStr,
+            event: eventType,
+            name: nodeName,
+            nodeId: nodeId
+        });
+
+        // Keep only last N entries
+        if (this.changeLog.length > this.maxLogEntries) {
+            this.changeLog.pop();
+        }
+
+        this.renderChangeLog();
+    }
+
+    renderChangeLog() {
+        const container = document.getElementById('change-log-entries');
+        if (!container) return;
+
+        container.innerHTML = this.changeLog.map((entry, i) => `
+            <div class="log-entry" style="${i > 0 ? 'animation: none;' : ''}">
+                <span class="log-time">${entry.time}</span>
+                <span class="log-event">${entry.event}</span>
+                <span class="log-name" title="${this.escapeHtml(entry.name)}">${this.escapeHtml(entry.name)}</span>
+            </div>
+        `).join('');
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+
     handleMessage(message) {
         // Initial node list from start_listening
         if (message.message_id === "1" && message.result) {
             console.log('Received initial nodes', message.result);
             this.updateNodes(message.result);
+            // Log connection event
+            this.addChangeLogEntry('connect', `${message.result.length} nodes loaded`, null);
         }
 
         // Events
-        if (message.event === 'node_updated' || message.event === 'node_added') {
-            // For single node updates/adds, we might want to merge into our state
-            // But the API seems to return the full node object in data for these events based on earlier analysis?
-            // Actually, looking at main.js: node_added returns data as node object.
-            // node_updated returns data as node object.
-            // We can just re-process this specific node.
+        if (message.event === 'node_updated') {
             if (message.data) {
-                this.updateSingleNode(message.data);
+                this.updateSingleNode(message.data, 'updated');
+            }
+        }
+
+        if (message.event === 'node_added') {
+            if (message.data) {
+                this.updateSingleNode(message.data, 'added');
+            }
+        }
+
+        if (message.event === 'node_removed') {
+            if (message.data?.node_id) {
+                const nodeName = this.nodes[message.data.node_id]
+                    ? this.graph.getDeviceName(this.nodes[message.data.node_id])
+                    : `Node ${message.data.node_id}`;
+                delete this.nodes[message.data.node_id];
+                this.addChangeLogEntry('removed', nodeName, message.data.node_id);
+                this.graph.render(this.nodes, this.haDevices, this.haDevicesBySerial);
             }
         }
     }
@@ -362,11 +419,11 @@ class App {
         this.graph.render(this.nodes, this.haDevices, this.haDevicesBySerial);
     }
 
-    updateSingleNode(nodeData) {
+    updateSingleNode(nodeData, eventType = 'updated') {
         this.nodes[nodeData.node_id] = nodeData;
 
         // Show update notification
-        this.showUpdateNotification(nodeData.node_id);
+        this.showUpdateNotification(nodeData.node_id, eventType);
 
         // Optimize: verify if we can just update one node instead of full re-render
         // For now, full re-render is safer to keep edges correct
