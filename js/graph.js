@@ -365,14 +365,13 @@ class NetworkGraph {
         const deviceTypeNames = {
             256: 'Light', 257: 'Light', 258: 'Light', 259: 'Light', 268: 'Light', 269: 'Light',
             266: 'Outlet', 267: 'Outlet',
-            21: 'Contact Sensor',      // Door/window contact sensor
-            106: 'Motion Sensor',       // Occupancy sensor
-            107: 'Light Sensor',
-            262: 'Humidity Sensor',
-            263: 'Temperature Sensor', 773: 'Temperature Sensor', 775: 'Temperature Sensor',
-            2112: 'Motion Sensor',      // Presence sensor
-            1296: 'Power Sensor',       // Electrical sensor
-            10: 'Sensor',               // Generic
+            10: 'Lock',
+            21: 'Contact Sensor',       // 0x0015 Contact Sensor
+            262: 'Light Sensor',        // 0x0106 Light Sensor
+            263: 'Motion Sensor',       // 0x0107 Occupancy Sensor
+            773: 'Temperature Sensor',  // 0x0305 Temperature Sensor
+            775: 'Humidity Sensor',     // 0x0307 Humidity Sensor
+            1296: 'Power Sensor',       // 0x0510 Electrical Sensor
             514: 'Window', 515: 'Window',
             770: 'Thermostat',
             14: 'Remote', 15: 'Remote', 17: 'Remote', 19: 'Remote', 772: 'Remote', 2128: 'Remote'
@@ -1074,38 +1073,35 @@ class NetworkGraph {
 
     getDeviceType(node) {
         // Matter device type IDs (from spec)
-        // Priority order matters - more specific/primary types should be checked first
+        // https://github.com/project-chip/connectedhomeip/blob/master/src/app/zap-templates/zcl/data-model/chip/matter-devices.xml
         const deviceTypeNames = {
-            // Lights
-            256: 'Light',      // On/Off Light
-            257: 'Light',      // Dimmable Light
-            258: 'Light',      // Color Temperature Light
-            259: 'Light',      // Extended Color Light
-            268: 'Light',      // Color Temperature Light (plug-in)
-            269: 'Light',      // Extended Color Light
+            // Lights (0x0100-0x010D)
+            256: 'Light',      // 0x0100 On/Off Light
+            257: 'Light',      // 0x0101 Dimmable Light
+            258: 'Light',      // 0x0102 Color Temperature Light
+            259: 'Light',      // 0x0103 Extended Color Light
+            268: 'Light',      // 0x010C Color Temperature Light
+            269: 'Light',      // 0x010D Extended Color Light
             // Outlets/Plugs
-            266: 'Outlet',     // On/Off Plug-in Unit
-            267: 'Outlet',     // Dimmable Plug-In Unit
+            266: 'Outlet',     // 0x010A On/Off Plug-in Unit
+            267: 'Outlet',     // 0x010B Dimmable Plug-In Unit
             // Locks
-            10: 'Lock',        // Door Lock
-            // Sensors - differentiated
-            21: 'Contact Sensor',       // Contact Sensor (door/window)
-            106: 'Motion Sensor',       // Occupancy Sensor
-            107: 'Light Sensor',        // Light Sensor
-            262: 'Humidity Sensor',     // Humidity Sensor
-            263: 'Temperature Sensor',  // Temperature Sensor
-            773: 'Temperature Sensor',  // Temperature Sensor
-            775: 'Temperature Sensor',  // Temperature Sensor
-            2112: 'Motion Sensor',      // Presence Sensor
-            1296: 'Power Sensor',       // Electrical Sensor
+            10: 'Lock',        // 0x000A Door Lock
+            // Sensors - CORRECTED IDs
+            21: 'Contact Sensor',       // 0x0015 Contact Sensor
+            262: 'Light Sensor',        // 0x0106 Light Sensor
+            263: 'Motion Sensor',       // 0x0107 Occupancy Sensor - THIS WAS WRONG!
+            773: 'Temperature Sensor',  // 0x0305 Temperature Sensor
+            775: 'Humidity Sensor',     // 0x0307 Humidity Sensor
+            1296: 'Power Sensor',       // 0x0510 Electrical Sensor
             // Window Coverings
-            514: 'Window',     // Window Covering
-            515: 'Window',     // Window Covering Controller
+            514: 'Window',     // 0x0202 Window Covering
+            515: 'Window',     // 0x0203 Window Covering Controller
             // Climate
-            770: 'Thermostat', // Thermostat
+            770: 'Thermostat', // 0x0302 Thermostat
             // Remotes/Controls
             14: 'Remote',      // Aggregator
-            15: 'Remote',      // Generic Switch / Remote
+            15: 'Remote',      // Generic Switch
             17: 'Remote',      // Power Source
             19: 'Remote',      // Bridge
             772: 'Remote',     // Basic Video Player
@@ -1113,7 +1109,7 @@ class NetworkGraph {
         };
 
         // Priority types - these should win if present (primary function)
-        const priorityTypes = [106, 2112, 21, 10, 770]; // Motion, Presence, Contact, Lock, Thermostat
+        const priorityTypes = [263, 21, 10, 770]; // Occupancy/Motion, Contact, Lock, Thermostat
 
         // Check all endpoints for device types
         const attrs = node.attributes || {};
