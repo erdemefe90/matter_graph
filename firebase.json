@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**",
+      "nodes_dump.json",
+      "fetch_data.js",
+      "analyze_thread.py",
+      "package.json",
+      "package-lock.json"
+    ]
+  }
+}
