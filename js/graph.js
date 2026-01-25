@@ -1051,7 +1051,7 @@ class NetworkGraph {
         'Thermostat': { fa: 'fa-temperature-half', code: '\uf2c9' },
         'Sensor': { fa: 'fa-eye', code: '\uf06e' },
         'Contact Sensor': { fa: 'fa-door-open', code: '\uf52b' },
-        'Motion Sensor': { fa: 'fa-satellite-dish', code: '\uf7c0' },
+        'Motion Sensor': { fa: 'fa-street-view', code: '\uf21d' },
         'Temperature Sensor': { fa: 'fa-thermometer-half', code: '\uf2c9' },
         'Humidity Sensor': { fa: 'fa-droplet', code: '\uf043' },
         'Light Sensor': { fa: 'fa-sun', code: '\uf185' },
