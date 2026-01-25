@@ -5,7 +5,8 @@ class App {
         this.nodes = {};
         this.haDevices = {}; // HA device registry cache (by node_id)
         this.haDevicesBySerial = {}; // HA device registry cache (by serial)
-        this.isConnected = false;
+        this.matterConnected = false;
+        this.haConnected = false;
 
         this.init();
     }
@@ -108,6 +109,7 @@ class App {
     fetchHADevices() {
         return new Promise((resolve) => {
             const settings = this.getSettings();
+            this.setHAConnected(false);
 
             if (!settings.haToken) {
                 console.log('No HA token found. Click "Settings" button to configure.');
@@ -139,11 +141,13 @@ class App {
                 }
                 else if (msg.type === 'auth_ok') {
                     console.log('HA authenticated, fetching device registry...');
+                    this.setHAConnected(true);
                     // Fetch device registry which has Matter node IDs
                     ws.send(JSON.stringify({ id: msgId++, type: 'config/device_registry/list' }));
                 }
                 else if (msg.type === 'auth_invalid') {
                     console.error('HA auth failed:', msg.message);
+                    this.setHAConnected(false);
                     clearTimeout(timeout);
                     ws.close();
                     resolve();
@@ -242,8 +246,8 @@ class App {
         this.ws = new WebSocket(url);
 
         this.ws.onopen = () => {
-            console.log('WebSocket Connected');
-            this.setConnected(true);
+            console.log('Matter WebSocket Connected');
+            this.setMatterConnected(true);
 
             // Start listening
             this.sendMessage({
@@ -256,13 +260,13 @@ class App {
         };
 
         this.ws.onclose = () => {
-            console.log('WebSocket Disconnected');
-            this.setConnected(false);
+            console.log('Matter WebSocket Disconnected');
+            this.setMatterConnected(false);
         };
 
         this.ws.onerror = (error) => {
-            console.error('WebSocket Error', error);
-            this.setConnected(false);
+            console.error('Matter WebSocket Error', error);
+            this.setMatterConnected(false);
         };
 
         this.ws.onmessage = (event) => {
@@ -281,18 +285,53 @@ class App {
         }
     }
 
-    setConnected(connected) {
-        this.isConnected = connected;
-        const statusDot = document.querySelector('.status-dot');
-        const statusText = document.querySelector('.status-text');
-
+    setMatterConnected(connected) {
+        this.matterConnected = connected;
+        const statusDot = document.querySelector('#matterStatus .status-dot');
         if (connected) {
             statusDot.classList.add('connected');
-            statusText.textContent = 'Connected';
         } else {
             statusDot.classList.remove('connected');
-            statusText.textContent = 'Disconnected';
         }
+    }
+
+    setHAConnected(connected) {
+        this.haConnected = connected;
+        const statusDot = document.querySelector('#haStatus .status-dot');
+        if (connected) {
+            statusDot.classList.add('connected');
+        } else {
+            statusDot.classList.remove('connected');
+        }
+    }
+
+    showUpdateNotification(nodeId) {
+        // Create or get the update indicator
+        let indicator = document.querySelector('.update-indicator');
+        if (!indicator) {
+            indicator = document.createElement('div');
+            indicator.className = 'update-indicator';
+            document.body.appendChild(indicator);
+        }
+
+        const nodeName = this.nodes[nodeId] ? this.graph.getDeviceName(this.nodes[nodeId]) : `Node ${nodeId}`;
+        indicator.textContent = `Updated: ${nodeName}`;
+        indicator.classList.add('show');
+
+        // Highlight the card if visible
+        const card = document.querySelector(`.device-card[data-node-id="${nodeId}"], .bridge-card[data-node-id="${nodeId}"]`);
+        if (card) {
+            card.classList.remove('updated');
+            void card.offsetWidth; // Trigger reflow
+            card.classList.add('updated');
+            setTimeout(() => card.classList.remove('updated'), 600);
+        }
+
+        // Hide notification after delay
+        clearTimeout(this.updateNotificationTimeout);
+        this.updateNotificationTimeout = setTimeout(() => {
+            indicator.classList.remove('show');
+        }, 2000);
     }
 
     handleMessage(message) {
@@ -325,6 +364,9 @@ class App {
 
     updateSingleNode(nodeData) {
         this.nodes[nodeData.node_id] = nodeData;
+
+        // Show update notification
+        this.showUpdateNotification(nodeData.node_id);
 
         // Optimize: verify if we can just update one node instead of full re-render
         // For now, full re-render is safer to keep edges correct

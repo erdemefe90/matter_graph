@@ -28,9 +28,15 @@
         <header class="glass-header">
             <div class="header-content">
                 <h1>Matter Network Graph</h1>
-                <div class="connection-status" id="connectionStatus">
-                    <span class="status-dot"></span>
-                    <span class="status-text">Disconnected</span>
+                <div class="connection-indicators">
+                    <div class="connection-status" id="matterStatus" title="Python Matter Server">
+                        <span class="status-dot"></span>
+                        <span class="status-label">Matter</span>
+                    </div>
+                    <div class="connection-status" id="haStatus" title="Home Assistant">
+                        <span class="status-dot"></span>
+                        <span class="status-label">HA</span>
+                    </div>
                 </div>
             </div>
             <div class="controls">
