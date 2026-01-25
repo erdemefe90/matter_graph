@@ -365,8 +365,14 @@ class NetworkGraph {
         const deviceTypeNames = {
             256: 'Light', 257: 'Light', 258: 'Light', 259: 'Light', 268: 'Light', 269: 'Light',
             266: 'Outlet', 267: 'Outlet',
-            10: 'Sensor', 21: 'Sensor', 106: 'Sensor', 107: 'Sensor', 262: 'Sensor', 263: 'Sensor',
-            773: 'Sensor', 775: 'Sensor', 2112: 'Sensor', 1296: 'Sensor',
+            21: 'Contact Sensor',      // Door/window contact sensor
+            106: 'Motion Sensor',       // Occupancy sensor
+            107: 'Light Sensor',
+            262: 'Humidity Sensor',
+            263: 'Temperature Sensor', 773: 'Temperature Sensor', 775: 'Temperature Sensor',
+            2112: 'Motion Sensor',      // Presence sensor
+            1296: 'Power Sensor',       // Electrical sensor
+            10: 'Sensor',               // Generic
             514: 'Window', 515: 'Window',
             770: 'Thermostat',
             14: 'Remote', 15: 'Remote', 17: 'Remote', 19: 'Remote', 772: 'Remote', 2128: 'Remote'
@@ -1045,8 +1051,14 @@ class NetworkGraph {
         'Lock': { fa: 'fa-lock', code: '\uf023' },
         'Thermostat': { fa: 'fa-temperature-half', code: '\uf2c9' },
         'Sensor': { fa: 'fa-eye', code: '\uf06e' },
+        'Contact Sensor': { fa: 'fa-door-open', code: '\uf52b' },
+        'Motion Sensor': { fa: 'fa-person-walking', code: '\uf554' },
+        'Temperature Sensor': { fa: 'fa-thermometer-half', code: '\uf2c9' },
+        'Humidity Sensor': { fa: 'fa-droplet', code: '\uf043' },
+        'Light Sensor': { fa: 'fa-sun', code: '\uf185' },
+        'Power Sensor': { fa: 'fa-bolt', code: '\uf0e7' },
         'Remote': { fa: 'fa-gamepad', code: '\uf11b' },
-        'Pump': { fa: 'fa-droplet', code: '\uf043' },
+        'Pump': { fa: 'fa-faucet-drip', code: '\ue006' },
         'Device': { fa: 'fa-cube', code: '\uf1b2' },
         'TBR': { fa: 'fa-globe', code: '\uf0ac' }
     };
@@ -1075,16 +1087,16 @@ class NetworkGraph {
             267: 'Outlet',     // Dimmable Plug-In Unit
             // Locks
             10: 'Lock',        // Door Lock
-            // Sensors
-            21: 'Sensor',      // Contact Sensor
-            106: 'Sensor',     // Occupancy Sensor
-            107: 'Sensor',     // Light Sensor
-            262: 'Sensor',     // Humidity Sensor
-            263: 'Sensor',     // Temperature Sensor
-            773: 'Sensor',     // Temperature Sensor
-            775: 'Sensor',     // Temperature Sensor
-            2112: 'Sensor',    // Presence Sensor
-            1296: 'Sensor',    // Electrical Sensor
+            // Sensors - differentiated
+            21: 'Contact Sensor',       // Contact Sensor (door/window)
+            106: 'Motion Sensor',       // Occupancy Sensor
+            107: 'Light Sensor',        // Light Sensor
+            262: 'Humidity Sensor',     // Humidity Sensor
+            263: 'Temperature Sensor',  // Temperature Sensor
+            773: 'Temperature Sensor',  // Temperature Sensor
+            775: 'Temperature Sensor',  // Temperature Sensor
+            2112: 'Motion Sensor',      // Presence Sensor
+            1296: 'Power Sensor',       // Electrical Sensor
             // Window Coverings
             514: 'Window',     // Window Covering
             515: 'Window',     // Window Covering Controller
@@ -1127,9 +1139,10 @@ class NetworkGraph {
                 if (clusters.includes(6)) return 'Switch';   // On/Off
                 if (clusters.includes(258)) return 'Window'; // Window Covering
                 if (clusters.includes(257)) return 'Lock';   // Door Lock
-                if (clusters.includes(1026)) return 'Sensor'; // Temperature
-                if (clusters.includes(1029)) return 'Sensor'; // Humidity
-                if (clusters.includes(1030)) return 'Sensor'; // Occupancy
+                if (clusters.includes(1026)) return 'Temperature Sensor';
+                if (clusters.includes(1029)) return 'Humidity Sensor';
+                if (clusters.includes(1030)) return 'Motion Sensor';  // Occupancy
+                if (clusters.includes(69)) return 'Contact Sensor';   // Boolean State
             }
         }
 
