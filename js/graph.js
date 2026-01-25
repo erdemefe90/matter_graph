@@ -1286,6 +1286,36 @@ class NetworkGraph {
         // Thread Neighbor Table
         if (hasThread) {
             const neighbors = node.attributes?.['0/53/7'] || [];
+
+            // Find nodes that observe this node (have this node in their neighbor table)
+            const observers = this.getObserversOfNode(node.node_id);
+
+            // Calculate actual connection count (union of neighbors and observers)
+            const neighborExtAddrs = new Set();
+            neighbors.forEach(n => {
+                if (n['0']) {
+                    try {
+                        const upper48 = (BigInt(n['0']) >> 16n).toString();
+                        neighborExtAddrs.add(upper48);
+                    } catch (e) {}
+                }
+            });
+            const observerNodeIds = new Set(observers.map(o => o.nodeId));
+            const myExtAddr = this.nodeExtAddrs?.[node.node_id]?.upper48;
+
+            // Total unique connections
+            const allConnectedIds = new Set();
+            neighbors.forEach(n => {
+                if (n['0']) {
+                    try {
+                        const upper48 = (BigInt(n['0']) >> 16n).toString();
+                        const resolvedId = this.extAddrToNodeId?.[upper48];
+                        if (resolvedId) allConnectedIds.add(resolvedId);
+                    } catch (e) {}
+                }
+            });
+            observers.forEach(o => allConnectedIds.add(o.nodeId));
+
             if (Array.isArray(neighbors) && neighbors.length > 0) {
                 html += `
                     <div class="detail-section">
@@ -1373,8 +1403,91 @@ class NetworkGraph {
                 });
                 html += `</div>`;
             }
+
+            // Show observers (nodes that see this node but aren't in our neighbor table)
+            if (observers.length > 0) {
+                // Filter to only show observers NOT already in our neighbor table
+                const observersNotInNeighbors = observers.filter(o => {
+                    const observerExtAddr = this.nodeExtAddrs?.[o.nodeId]?.upper48;
+                    return observerExtAddr && !neighborExtAddrs.has(observerExtAddr);
+                });
+
+                if (observersNotInNeighbors.length > 0) {
+                    html += `
+                        <div class="detail-section">
+                            <div class="detail-section-title" style="color: #ffb74d;">Also Connected (${observersNotInNeighbors.length})</div>
+                            <div class="observer-list">
+                    `;
+
+                    observersNotInNeighbors.forEach(obs => {
+                        const observerNode = this.nodesMap[obs.nodeId];
+                        if (!observerNode) return;
+
+                        const obsName = this.getDeviceName(observerNode);
+                        const rssi = obs.rssi;
+                        const lqi = obs.lqi;
+                        const age = obs.age;
+
+                        let signalClass = 'signal-weak';
+                        if (rssi > -70) signalClass = 'signal-strong';
+                        else if (rssi > -85) signalClass = 'signal-medium';
+
+                        html += `
+                            <div class="observer-item">
+                                <div class="observer-header">
+                                    <span class="observer-name">${this.escapeHtml(obsName)}</span>
+                                    ${rssi !== null ? `<span class="neighbor-signal ${signalClass}">${rssi} dBm</span>` : ''}
+                                </div>
+                                <div class="observer-details">
+                                    Node ${obs.nodeId}${lqi !== null ? ` · LQI: ${lqi}` : ''}${age !== null ? ` · Age: ${age}s` : ''} · sees us
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    html += `</div></div>`;
+                }
+            }
         }
 
         container.innerHTML = html;
+    }
+
+    // Find all nodes that have the given nodeId in their neighbor table
+    getObserversOfNode(targetNodeId) {
+        const observers = [];
+        const targetExtAddr = this.nodeExtAddrs?.[targetNodeId]?.upper48;
+
+        if (!targetExtAddr) return observers;
+
+        // Search all nodes' neighbor tables for this node's extended address
+        Object.entries(this.nodesMap).forEach(([nodeIdStr, node]) => {
+            const nodeId = parseInt(nodeIdStr);
+            if (nodeId === targetNodeId) return; // Skip self
+
+            const neighbors = node.attributes?.['0/53/7'] || [];
+            if (!Array.isArray(neighbors)) return;
+
+            for (const n of neighbors) {
+                if (n['0']) {
+                    try {
+                        const upper48 = (BigInt(n['0']) >> 16n).toString();
+                        if (upper48 === targetExtAddr) {
+                            observers.push({
+                                nodeId: nodeId,
+                                rssi: n['6'] ?? null,
+                                lqi: n['7'] ?? null,
+                                age: n['2'] ?? null
+                            });
+                            break;
+                        }
+                    } catch (e) {}
+                }
+            }
+        });
+
+        // Sort by signal strength
+        observers.sort((a, b) => (b.rssi ?? -999) - (a.rssi ?? -999));
+        return observers;
     }
 }
