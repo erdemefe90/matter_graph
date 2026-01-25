@@ -123,6 +123,70 @@ body {
     text-align: center;
 }
 
+/* Collapsible Panels */
+.collapsible .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 0.75rem;
+}
+
+.collapsible .panel-header h2 {
+    margin-bottom: 0;
+}
+
+.collapse-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0.25rem;
+    font-size: 0.75rem;
+    transition: var(--transition);
+    opacity: 0.6;
+}
+
+.collapse-btn:hover {
+    color: var(--text-main);
+    opacity: 1;
+}
+
+.collapsible.collapsed .collapse-btn i {
+    transform: rotate(180deg);
+}
+
+.collapsible .panel-content {
+    transition: opacity 0.2s ease;
+}
+
+.collapsible.collapsed .panel-content {
+    display: none;
+}
+
+.collapsible.collapsed {
+    min-width: auto !important;
+    width: auto !important;
+}
+
+.collapsible.collapsed .panel-header {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    margin-bottom: 0;
+}
+
+.collapsible.collapsed .panel-header h2 {
+    margin: 0;
+}
+
+.collapsible.collapsed .collapse-btn {
+    margin-top: 0.5rem;
+}
+
+.collapsible.collapsed .collapse-btn i {
+    transform: rotate(90deg);
+}
+
 .direct-panel {
     width: 280px;
     min-width: 280px;

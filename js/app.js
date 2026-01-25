@@ -31,6 +31,33 @@ class App {
             }
         });
 
+        // Collapsible panels
+        document.querySelectorAll('.collapsible .panel-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const panel = header.closest('.collapsible');
+                panel.classList.toggle('collapsed');
+                // Save state to localStorage
+                const panelName = header.dataset.panel;
+                localStorage.setItem(`panel_${panelName}_collapsed`, panel.classList.contains('collapsed'));
+                // Trigger graph resize after animation
+                setTimeout(() => {
+                    if (this.graph?.network) {
+                        this.graph.network.redraw();
+                        this.graph.network.fit();
+                    }
+                }, 250);
+            });
+        });
+
+        // Restore collapsed state from localStorage
+        document.querySelectorAll('.collapsible .panel-header').forEach(header => {
+            const panelName = header.dataset.panel;
+            const isCollapsed = localStorage.getItem(`panel_${panelName}_collapsed`) === 'true';
+            if (isCollapsed) {
+                header.closest('.collapsible').classList.add('collapsed');
+            }
+        });
+
         // Fetch HA devices first (for names), then connect
         this.fetchHADevices().then(() => {
             this.connect();
