@@ -34,6 +34,18 @@ class App {
             }
         });
 
+        // Layout controls
+        const layoutSelect = document.getElementById('layoutSelect');
+        if (layoutSelect) {
+            layoutSelect.value = this.graph.layoutMode;
+            layoutSelect.addEventListener('change', () => {
+                this.graph.setLayout(layoutSelect.value);
+            });
+        }
+        document.getElementById('relayoutBtn')?.addEventListener('click', () => {
+            this.graph.relayout();
+        });
+
         // Collapsible panels
         document.querySelectorAll('.collapsible .panel-header').forEach(header => {
             header.addEventListener('click', () => {

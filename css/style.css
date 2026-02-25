@@ -316,6 +316,62 @@ body {
     overflow-y: auto;
 }
 
+.thread-devices-panel {
+    width: 250px;
+    min-width: 250px;
+    overflow-y: auto;
+}
+
+.thread-devices-panel h2 {
+    color: #4db6ac;
+}
+
+/* Thread device cards use teal accent */
+.thread-devices-panel .device-card {
+    background: rgba(77, 182, 172, 0.05);
+    border-color: rgba(77, 182, 172, 0.15);
+}
+
+.thread-devices-panel .device-card:hover {
+    background: rgba(77, 182, 172, 0.1);
+    border-color: rgba(77, 182, 172, 0.3);
+}
+
+.thread-devices-panel .device-card.selected {
+    border-color: #4db6ac;
+    box-shadow: 0 0 0 1px #4db6ac, 0 0 12px rgba(77, 182, 172, 0.4);
+}
+
+.thread-devices-panel .device-group-header {
+    color: #4db6ac;
+}
+
+.thread-role-badge {
+    font-size: 0.55rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 3px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.thread-role-badge.router {
+    color: #03a9f4;
+    background: rgba(3, 169, 244, 0.15);
+}
+
+.thread-role-badge.reed {
+    color: #81d4fa;
+    background: rgba(129, 212, 250, 0.15);
+}
+
+.thread-role-badge.end-device {
+    color: #4db6ac;
+    background: rgba(77, 182, 172, 0.15);
+}
+
 .middle-section {
     display: flex;
     flex-direction: column;
@@ -572,6 +628,56 @@ body {
 
 .bridged-group-header:first-child {
     margin-top: 0;
+}
+
+/* Thread Panel Header */
+.thread-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.thread-panel-header h2 {
+    margin-bottom: 0;
+}
+
+.layout-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.layout-select {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.4rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.layout-select:hover {
+    border-color: var(--border-hover);
+    color: var(--text-main);
+}
+
+.layout-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.layout-select option {
+    background: #161b22;
+    color: var(--text-main);
+}
+
+.btn-sm {
+    padding: 0.2rem 0.45rem;
+    font-size: 0.7rem;
 }
 
 /* Thread Legend */

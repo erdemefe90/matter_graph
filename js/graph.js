@@ -5,6 +5,7 @@ class NetworkGraph {
         this.haDevices = {};
         this.haDevicesBySerial = {};
         this.nodesMap = {};
+        this.layoutMode = localStorage.getItem('graphLayout') || 'default';
         this.data = {
             nodes: new vis.DataSet([]),
             edges: new vis.DataSet([])
@@ -77,6 +78,95 @@ class NetworkGraph {
                 dragNodes: true
             }
         };
+    }
+
+    getLayoutOptions(mode) {
+        switch (mode) {
+            case 'hierarchical':
+                return {
+                    layout: {
+                        hierarchical: {
+                            enabled: true,
+                            direction: 'UD',
+                            sortMethod: 'hubsize',
+                            levelSeparation: 120,
+                            nodeSpacing: 150,
+                            treeSpacing: 200
+                        }
+                    },
+                    physics: {
+                        enabled: true,
+                        hierarchicalRepulsion: {
+                            centralGravity: 0.2,
+                            springLength: 120,
+                            springConstant: 0.02,
+                            nodeDistance: 150,
+                            damping: 0.09,
+                            avoidOverlap: 0.8
+                        },
+                        stabilization: { enabled: true, iterations: 300 }
+                    }
+                };
+            case 'radial':
+                return {
+                    layout: {
+                        improvedLayout: true,
+                        randomSeed: 42,
+                        hierarchical: { enabled: false }
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: { enabled: true, iterations: 300 },
+                        barnesHut: {
+                            gravitationalConstant: -2000,
+                            centralGravity: 0.8,
+                            springLength: 100,
+                            springConstant: 0.06,
+                            damping: 0.09,
+                            avoidOverlap: 0.8
+                        }
+                    }
+                };
+            default: // 'default' - TBR-central
+                return {
+                    layout: {
+                        improvedLayout: true,
+                        randomSeed: 42,
+                        hierarchical: { enabled: false }
+                    },
+                    physics: {
+                        enabled: true,
+                        stabilization: { enabled: true, iterations: 300 },
+                        barnesHut: {
+                            gravitationalConstant: -4000,
+                            centralGravity: 0.3,
+                            springLength: 150,
+                            springConstant: 0.04,
+                            damping: 0.09,
+                            avoidOverlap: 0.8
+                        }
+                    }
+                };
+        }
+    }
+
+    setLayout(mode) {
+        this.layoutMode = mode;
+        localStorage.setItem('graphLayout', mode);
+        this.relayout();
+    }
+
+    relayout() {
+        if (!this.network) return;
+
+        const layoutOpts = this.getLayoutOptions(this.layoutMode);
+        this.network.setOptions(layoutOpts);
+
+        // Re-enable physics for stabilization, then disable
+        this.network.once("stabilizationIterationsDone", () => {
+            this.network.setOptions({ physics: { enabled: false } });
+        });
+        this.network.stabilize();
     }
 
     render(nodesMap, haDevices = {}, haDevicesBySerial = {}) {
@@ -162,6 +252,8 @@ class NetworkGraph {
         this.renderThreadMesh(threadDevices, routerIds, reedIds, tbrDevices);
         // Render bridges after thread mesh so we have TBR association info
         this.renderBridges(tbrDevices);
+        // Render thread devices list (after thread mesh so roles are available)
+        this.renderThreadDevicesList(threadDevices, routerIds, reedIds);
     }
 
     renderDirectDevices(devices) {
@@ -279,6 +371,67 @@ class NetworkGraph {
                 const nodeId = parseInt(card.dataset.nodeId);
                 const endpoint = parseInt(card.dataset.endpoint);
                 this.showBridgedDeviceDetails(this.nodesMap[nodeId], endpoint);
+            });
+        });
+    }
+
+    renderThreadDevicesList(devices, routerIds, reedIds) {
+        const container = document.getElementById('thread-devices');
+        if (!container) return;
+
+        if (devices.length === 0) {
+            container.innerHTML = '<p class="placeholder-text">No Thread devices</p>';
+            return;
+        }
+
+        const sorted = [...devices].sort((a, b) => a.node_id - b.node_id);
+
+        let html = '';
+
+        sorted.forEach(node => {
+            const name = this.getDeviceName(node);
+            const vendor = node.attributes?.['0/40/1'] || 'Unknown';
+            const product = node.attributes?.['0/40/14'] || node.attributes?.['0/40/3'] || '';
+            const deviceType = this.getDeviceType(node);
+            const iconHtml = this.getDeviceIconHtml(deviceType, '#ffffff');
+
+            let role, roleClass;
+            if (routerIds.has(node.node_id)) {
+                role = 'Router';
+                roleClass = 'router';
+            } else if (reedIds.has(node.node_id)) {
+                role = 'REED';
+                roleClass = 'reed';
+            } else {
+                role = 'End Device';
+                roleClass = 'end-device';
+            }
+
+            html += `
+                <div class="device-card" data-node-id="${node.node_id}">
+                    <div class="device-name">
+                        <span class="device-icon">${iconHtml}</span>
+                        ${node.node_id} · ${this.escapeHtml(name)}
+                        <span class="thread-role-badge ${roleClass}">${role}</span>
+                    </div>
+                    <div class="device-info">${this.escapeHtml(vendor)} · ${this.escapeHtml(product)}</div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+
+        // Add click handlers
+        container.querySelectorAll('.device-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.device-card, .bridge-card, .bridged-device-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                const nodeId = parseInt(card.dataset.nodeId);
+                this.showNodeDetails(this.nodesMap[nodeId]);
+                // Also select in graph
+                if (this.network) {
+                    this.network.selectNodes([nodeId]);
+                }
             });
         });
     }
@@ -779,6 +932,7 @@ class NetworkGraph {
                 id: node.node_id,
                 label: shortName,
                 group: group,
+                mass: isRouter ? 2 : 1,
                 title: this.getTooltip(node),
                 icon: {
                     face: '"Font Awesome 6 Free"',
@@ -833,6 +987,7 @@ class NetworkGraph {
                 id: nodeId,
                 label: shortName,
                 group: 'tbr',
+                mass: 3, // Higher mass pulls TBRs toward center
                 title: `${name}\nThread Border Router\nSeen by ${tbrInfo.seenBy.length} nodes`,
                 icon: {
                     face: '"Font Awesome 6 Free"',
@@ -972,13 +1127,15 @@ class NetworkGraph {
             }
         });
 
-        this.data.nodes.clear();
-        this.data.nodes.add(nodes);
-        this.data.edges.clear();
-        this.data.edges.add(edges);
-
         if (!this.network) {
-            this.network = new vis.Network(this.container, this.data, this.options);
+            // First render: add all nodes/edges and create the network
+            this.data.nodes.add(nodes);
+            this.data.edges.add(edges);
+
+            // Merge layout-specific options
+            const layoutOpts = this.getLayoutOptions(this.layoutMode);
+            const opts = { ...this.options, ...layoutOpts };
+            this.network = new vis.Network(this.container, this.data, opts);
 
             // Disable physics after stabilization to stop spinning
             this.network.on("stabilizationIterationsDone", () => {
@@ -1012,6 +1169,60 @@ class NetworkGraph {
                 }
             });
 
+        } else {
+            // Incremental update: preserve existing node positions
+            const positions = this.network.getPositions();
+
+            // Build maps of current and new nodes/edges for diffing
+            const currentNodeIds = new Set(this.data.nodes.getIds());
+            const newNodeIds = new Set(nodes.map(n => n.id));
+            const currentEdgeIds = new Set(this.data.edges.getIds());
+            const newEdgeMap = {};
+            edges.forEach(e => {
+                const eid = [e.from, e.to].sort().join('-');
+                newEdgeMap[eid] = e;
+            });
+
+            // Remove nodes that no longer exist
+            const toRemove = [...currentNodeIds].filter(id => !newNodeIds.has(id));
+            if (toRemove.length > 0) {
+                this.data.nodes.remove(toRemove);
+            }
+
+            // Update existing nodes (preserve position) and add new ones
+            const toUpdate = [];
+            const toAdd = [];
+            nodes.forEach(node => {
+                if (currentNodeIds.has(node.id)) {
+                    // Preserve x/y position from current layout
+                    const pos = positions[node.id];
+                    if (pos) {
+                        node.x = pos.x;
+                        node.y = pos.y;
+                    }
+                    toUpdate.push(node);
+                } else {
+                    toAdd.push(node);
+                }
+            });
+
+            if (toUpdate.length > 0) {
+                this.data.nodes.update(toUpdate);
+            }
+            if (toAdd.length > 0) {
+                this.data.nodes.add(toAdd);
+                // Briefly enable physics to position new nodes, then disable
+                if (toAdd.length > 0) {
+                    this.network.setOptions({ physics: { enabled: true } });
+                    this.network.once("stabilizationIterationsDone", () => {
+                        this.network.setOptions({ physics: { enabled: false } });
+                    });
+                }
+            }
+
+            // Rebuild edges (simpler since they don't have positions)
+            this.data.edges.clear();
+            this.data.edges.add(edges);
         }
     }
 

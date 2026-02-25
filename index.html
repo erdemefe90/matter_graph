@@ -66,8 +66,28 @@
                 </div>
             </section>
 
+            <section class="panel thread-devices-panel glass-panel collapsible">
+                <div class="panel-header" data-panel="thread-devices">
+                    <h2>Thread Devices</h2>
+                    <button class="collapse-btn"><i class="fa-solid fa-chevron-left"></i></button>
+                </div>
+                <div class="panel-content">
+                    <div id="thread-devices" class="device-list"></div>
+                </div>
+            </section>
+
             <section class="panel thread-panel glass-panel">
-                <h2>Thread Mesh</h2>
+                <div class="thread-panel-header">
+                    <h2>Thread Mesh</h2>
+                    <div class="layout-controls">
+                        <select id="layoutSelect" class="layout-select" title="Graph layout">
+                            <option value="default">Default</option>
+                            <option value="hierarchical">Hierarchical</option>
+                            <option value="radial">Radial</option>
+                        </select>
+                        <button id="relayoutBtn" class="btn btn-secondary btn-sm" title="Re-layout"><i class="fa-solid fa-arrows-rotate"></i></button>
+                    </div>
+                </div>
                 <div id="graph-container"></div>
                 <div class="thread-legend">
                     <span class="legend-item"><span class="legend-dot router"></span> Router</span>
