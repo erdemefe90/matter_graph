@@ -1481,7 +1481,7 @@ class NetworkGraph {
             </div>
             <div class="detail-item">
                 <div class="detail-label">Node ID</div>
-                <div class="detail-value"><span class="sensitive">${node.node_id}</span></div>
+                <div class="detail-value">${node.node_id}</div>
             </div>
         `;
 
@@ -1645,15 +1645,19 @@ class NetworkGraph {
                     const typeIcon = isRouter ? '🔷' : '🔹';
                     const sleepIcon = rxOnIdle ? '' : ' 💤';
 
+                    const neighborLabel = resolvedNodeId && resolvedName
+                        ? `${resolvedNodeId} · ${this.escapeHtml(resolvedName)}`
+                        : `<span class="sensitive">${extAddrHex.slice(0, 4)}…${extAddrHex.slice(-4)}</span>`;
+
                     html += `
                         <div class="neighbor-item">
                             <div class="neighbor-header">
                                 <span class="neighbor-type">${typeIcon}</span>
-                                <span class="neighbor-addr"><span class="sensitive">${extAddrHex.slice(0, 4)}…${extAddrHex.slice(-4)}</span></span>
+                                <span class="neighbor-addr">${neighborLabel}</span>
                                 <span class="neighbor-signal ${signalClass}">${rssi} dBm</span>
                             </div>
                             <div class="neighbor-details">
-                                ${resolvedName ? `<strong>${this.escapeHtml(resolvedName)}</strong> · ` : ''}LQI: ${lqi} · Age: ${age}s${isChild ? ' · Child' : ''}${fullThread ? ' · FTD' : ' · MTD'}${sleepIcon}
+                                LQI: ${lqi} · Age: ${age}s${isChild ? ' · Child' : ''}${fullThread ? ' · FTD' : ' · MTD'}${sleepIcon}
                             </div>
                         </div>
                     `;
@@ -1674,13 +1678,37 @@ class NetworkGraph {
                     const pathCost = r['4'] ?? '?';
                     const lqIn = r['5'] ?? '?';
                     const lqOut = r['6'] ?? '?';
-                    const rloc16 = r['1']?.toString(16).toUpperCase().padStart(4, '0') || '?';
+                    const rloc16Raw = r['1'];
+                    const rloc16Hex = rloc16Raw?.toString(16).toUpperCase().padStart(4, '0') || '?';
+
+                    // Resolve via extended address (same approach as neighbors)
+                    let routeNodeId = null;
+                    let routeNodeName = '';
+                    const extAddr = r['0'];
+                    if (extAddr) {
+                        try {
+                            const upper48 = (BigInt(extAddr) >> 16n).toString();
+                            routeNodeId = this.extAddrToNodeId?.[upper48];
+                            if (routeNodeId && this.nodesMap[routeNodeId]) {
+                                routeNodeName = this.getDeviceName(this.nodesMap[routeNodeId]);
+                            }
+                        } catch (e) {}
+                    }
+                    // Fallback to RLOC16 map
+                    if (!routeNodeId) {
+                        routeNodeId = rloc16Raw != null ? this.rloc16ToNodeId?.[rloc16Raw] : null;
+                        if (routeNodeId && this.nodesMap[routeNodeId]) {
+                            routeNodeName = this.getDeviceName(this.nodesMap[routeNodeId]);
+                        }
+                    }
+                    const routeName = routeNodeId && routeNodeName
+                        ? `${routeNodeId} · ${this.escapeHtml(routeNodeName)}`
+                        : `<span class="sensitive">${rloc16Hex}</span>`;
 
                     html += `
                         <div class="route-item">
                             <div class="route-header">
-                                <span class="route-id">Router ${routerId}</span>
-                                <span class="route-rloc"><span class="sensitive">${rloc16}</span></span>
+                                <span class="route-id">${routeName}</span>
                             </div>
                             <div class="route-details">
                                 Next: ${nextHop} · Cost: ${pathCost} · LQ: ${lqIn}/${lqOut}
