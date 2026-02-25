@@ -6,6 +6,7 @@ class NetworkGraph {
         this.haDevicesBySerial = {};
         this.nodesMap = {};
         this.layoutMode = localStorage.getItem('graphLayout') || 'default';
+        this.anonymized = false;
         this.data = {
             nodes: new vis.DataSet([]),
             edges: new vis.DataSet([])
@@ -597,7 +598,7 @@ class NetworkGraph {
             html += `
             <div class="detail-item">
                 <div class="detail-label">Serial</div>
-                <div class="detail-value">${this.escapeHtml(serialNumber)}</div>
+                <div class="detail-value"><span class="sensitive">${this.escapeHtml(serialNumber)}</span></div>
             </div>`;
         }
 
@@ -638,13 +639,13 @@ class NetworkGraph {
                 </div>
                 <div class="detail-header-info">
                     <h3>Unknown ${roleLabel}</h3>
-                    <div class="detail-subtitle">${shortAddr}</div>
+                    <div class="detail-subtitle"><span class="sensitive">${shortAddr}</span></div>
                 </div>
             </div>
 
             <div class="detail-item">
                 <div class="detail-label">Extended Address</div>
-                <div class="detail-value mono">${unknown.extAddrHex}</div>
+                <div class="detail-value mono"><span class="sensitive">${unknown.extAddrHex}</span></div>
             </div>
             <div class="detail-item">
                 <div class="detail-label">Role</div>
@@ -963,7 +964,7 @@ class NetworkGraph {
             const shortAddr = unknown.extAddrHex.slice(0, 4) + '…' + unknown.extAddrHex.slice(-4);
             nodes.push({
                 id: unknown.id,
-                label: shortAddr,
+                label: this.anonymized ? 'Unknown' : shortAddr,
                 shape: 'icon',
                 icon: {
                     face: '"Font Awesome 6 Free"',
@@ -978,7 +979,7 @@ class NetworkGraph {
                     strokeWidth: 2,
                     strokeColor: '#000000'
                 },
-                title: 'Unknown: ' + unknown.extAddrHex + (unknown.isRouter ? ' (Router)' : ' (End Device)')
+                title: this.anonymized ? 'Unknown Device' : ('Unknown: ' + unknown.extAddrHex + (unknown.isRouter ? ' (Router)' : ' (End Device)'))
             });
         });
 
@@ -1393,10 +1394,35 @@ class NetworkGraph {
         return 'Device';
     }
 
+    setAnonymized(active) {
+        this.anonymized = active;
+        // Update all graph node tooltips
+        if (this.data?.nodes) {
+            const updates = [];
+            this.data.nodes.forEach(n => {
+                if (typeof n.id === 'string' && n.id.startsWith('unknown_')) {
+                    const unknown = this.unknownNodes?.find(u => u.id === n.id);
+                    updates.push({
+                        id: n.id,
+                        title: active ? 'Unknown Device' : ('Unknown: ' + (unknown?.extAddrHex || '') + (unknown?.isRouter ? ' (Router)' : ' (End Device)')),
+                        label: active ? 'Unknown' : (unknown ? unknown.extAddrHex.slice(0, 4) + '…' + unknown.extAddrHex.slice(-4) : n.label)
+                    });
+                } else {
+                    const node = this.nodesMap[n.id];
+                    if (node) {
+                        updates.push({ id: n.id, title: active ? '' : this.getTooltip(node) });
+                    }
+                }
+            });
+            this.data.nodes.update(updates);
+        }
+    }
+
     getTooltip(node) {
         const name = this.getDeviceName(node);
         const vendor = node.attributes?.['0/40/1'] || 'N/A';
         const status = node.available ? 'Online' : 'Offline';
+        if (this.anonymized) return '';
         return `${name}\nNode ID: ${node.node_id}\nVendor: ${vendor}\nStatus: ${status}`;
     }
 
@@ -1455,7 +1481,7 @@ class NetworkGraph {
             </div>
             <div class="detail-item">
                 <div class="detail-label">Node ID</div>
-                <div class="detail-value">${node.node_id}</div>
+                <div class="detail-value"><span class="sensitive">${node.node_id}</span></div>
             </div>
         `;
 
@@ -1466,13 +1492,17 @@ class NetworkGraph {
             'Serial': '0/40/15'
         };
 
+        const sensitiveLabels = new Set(['Serial']);
+
         for (const [label, path] of Object.entries(basicInfo)) {
             const val = node.attributes?.[path];
             if (val && val.toString().trim()) {
+                const escaped = this.escapeHtml(val.toString());
+                const value = sensitiveLabels.has(label) ? `<span class="sensitive">${escaped}</span>` : escaped;
                 html += `
                     <div class="detail-item">
                         <div class="detail-label">${label}</div>
-                        <div class="detail-value">${this.escapeHtml(val.toString())}</div>
+                        <div class="detail-value">${value}</div>
                     </div>
                 `;
             }
@@ -1505,14 +1535,14 @@ class NetworkGraph {
             if (ownRloc16 !== null) {
                 html += `<div class="detail-item">
                     <div class="detail-label">RLOC16</div>
-                    <div class="detail-value" style="font-family: monospace;">0x${ownRloc16.toString(16).toUpperCase().padStart(4, '0')}</div>
+                    <div class="detail-value" style="font-family: monospace;"><span class="sensitive">0x${ownRloc16.toString(16).toUpperCase().padStart(4, '0')}</span></div>
                 </div>`;
             }
 
             if (ownExtAddrHex) {
                 html += `<div class="detail-item">
                     <div class="detail-label">Extended Address</div>
-                    <div class="detail-value" style="font-family: monospace; font-size: 0.8rem;">${ownExtAddrHex}</div>
+                    <div class="detail-value" style="font-family: monospace; font-size: 0.8rem;"><span class="sensitive">${ownExtAddrHex}</span></div>
                 </div>`;
             }
 
@@ -1526,14 +1556,14 @@ class NetworkGraph {
             if (networkName) {
                 html += `<div class="detail-item">
                     <div class="detail-label">Network</div>
-                    <div class="detail-value">${this.escapeHtml(networkName)}</div>
+                    <div class="detail-value"><span class="sensitive">${this.escapeHtml(networkName)}</span></div>
                 </div>`;
             }
 
             if (panId !== undefined) {
                 html += `<div class="detail-item">
                     <div class="detail-label">PAN ID</div>
-                    <div class="detail-value" style="font-family: monospace;">0x${panId.toString(16).toUpperCase().padStart(4, '0')}</div>
+                    <div class="detail-value" style="font-family: monospace;"><span class="sensitive">0x${panId.toString(16).toUpperCase().padStart(4, '0')}</span></div>
                 </div>`;
             }
 
@@ -1619,7 +1649,7 @@ class NetworkGraph {
                         <div class="neighbor-item">
                             <div class="neighbor-header">
                                 <span class="neighbor-type">${typeIcon}</span>
-                                <span class="neighbor-addr">${extAddrHex.slice(0, 4)}…${extAddrHex.slice(-4)}</span>
+                                <span class="neighbor-addr"><span class="sensitive">${extAddrHex.slice(0, 4)}…${extAddrHex.slice(-4)}</span></span>
                                 <span class="neighbor-signal ${signalClass}">${rssi} dBm</span>
                             </div>
                             <div class="neighbor-details">
@@ -1650,7 +1680,7 @@ class NetworkGraph {
                         <div class="route-item">
                             <div class="route-header">
                                 <span class="route-id">Router ${routerId}</span>
-                                <span class="route-rloc">${rloc16}</span>
+                                <span class="route-rloc"><span class="sensitive">${rloc16}</span></span>
                             </div>
                             <div class="route-details">
                                 Next: ${nextHop} · Cost: ${pathCost} · LQ: ${lqIn}/${lqOut}

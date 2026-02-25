@@ -15,6 +15,7 @@ class App {
 
     init() {
         document.getElementById('reconnectBtn').addEventListener('click', () => this.connect());
+        document.getElementById('anonymizeBtn').addEventListener('click', () => this.toggleAnonymize());
         document.getElementById('settingsBtn').addEventListener('click', () => this.openSettings());
         document.getElementById('modalCloseBtn').addEventListener('click', () => this.closeSettings());
         document.getElementById('settingsCancelBtn').addEventListener('click', () => this.closeSettings());
@@ -86,6 +87,20 @@ class App {
             haToken: localStorage.getItem('haToken') || '',
             matterPort: localStorage.getItem('matterPort') || '5580'
         };
+    }
+
+    toggleAnonymize() {
+        document.body.classList.toggle('anonymized');
+        const btn = document.getElementById('anonymizeBtn');
+        const active = document.body.classList.contains('anonymized');
+        btn.classList.toggle('active', active);
+        btn.innerHTML = active
+            ? '<i class="fa-solid fa-eye"></i> Anonymize'
+            : '<i class="fa-solid fa-eye-slash"></i> Anonymize';
+        // Update graph tooltips
+        if (this.graph) {
+            this.graph.setAnonymized(active);
+        }
     }
 
     openSettings() {

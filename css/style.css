@@ -117,6 +117,19 @@ body {
     box-shadow: 0 0 6px rgba(244, 67, 54, 0.6);
 }
 
+/* Anonymize Mode */
+body.anonymized .sensitive {
+    filter: blur(5px);
+    user-select: none;
+    pointer-events: none;
+}
+
+#anonymizeBtn.active {
+    background: rgba(3, 169, 244, 0.2);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+}
+
 /* Update highlight animation */
 @keyframes node-update-pulse {
     0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7); }
