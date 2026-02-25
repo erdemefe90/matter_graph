@@ -408,8 +408,9 @@ class NetworkGraph {
             }
 
             html += `
-                <div class="device-card" data-node-id="${node.node_id}">
+                <div class="device-card ${node.available ? '' : 'offline'}" data-node-id="${node.node_id}">
                     <div class="device-name">
+                        <span class="status-dot ${node.available ? 'online' : 'offline'}"></span>
                         <span class="device-icon">${iconHtml}</span>
                         ${node.node_id} · ${this.escapeHtml(name)}
                         <span class="thread-role-badge ${roleClass}">${role}</span>
@@ -928,9 +929,16 @@ class NetworkGraph {
                 group = 'reed';
             }
 
+            // Dim offline devices
+            if (!node.available) {
+                nodeColor = '#78909c';
+            }
+
+            const labelText = node.available ? shortName : `${shortName}\n(Offline)`;
+
             nodes.push({
                 id: node.node_id,
-                label: shortName,
+                label: labelText,
                 group: group,
                 mass: isRouter ? 2 : 1,
                 title: this.getTooltip(node),
@@ -1161,7 +1169,10 @@ class NetworkGraph {
                             this.showNodeDetails(nodeData);
                             // Also highlight the card if exists
                             const card = document.querySelector(`.device-card[data-node-id="${nodeId}"], .bridge-card[data-node-id="${nodeId}"]`);
-                            if (card) card.classList.add('selected');
+                            if (card) {
+                                card.classList.add('selected');
+                                card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                            }
                         }
                     }
                 } else {

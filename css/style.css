@@ -107,6 +107,16 @@ body {
     box-shadow: 0 0 6px rgba(255, 152, 0, 0.6);
 }
 
+.status-dot.online {
+    background-color: #4caf50;
+    box-shadow: 0 0 6px rgba(76, 175, 80, 0.6);
+}
+
+.status-dot.offline {
+    background-color: #f44336;
+    box-shadow: 0 0 6px rgba(244, 67, 54, 0.6);
+}
+
 /* Update highlight animation */
 @keyframes node-update-pulse {
     0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.7); }
@@ -451,6 +461,10 @@ body {
 .device-card.selected {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 1px var(--primary-color), 0 0 12px var(--primary-glow);
+}
+
+.device-card.offline {
+    opacity: 0.5;
 }
 
 .device-card .device-name {
