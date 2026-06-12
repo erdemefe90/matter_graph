@@ -81,10 +81,12 @@ class App {
     }
 
     getSettings() {
+        const haHost = localStorage.getItem('haHost') || 'homeassistant.local';
         return {
-            haHost: localStorage.getItem('haHost') || 'homeassistant.local',
+            haHost: haHost,
             haPort: localStorage.getItem('haPort') || '8123',
             haToken: localStorage.getItem('haToken') || '',
+            matterHost: localStorage.getItem('matterHost') || haHost,
             matterPort: localStorage.getItem('matterPort') || '5580'
         };
     }
@@ -108,6 +110,7 @@ class App {
         document.getElementById('haHost').value = settings.haHost;
         document.getElementById('haPort').value = settings.haPort;
         document.getElementById('haToken').value = settings.haToken;
+        document.getElementById('matterHost').value = settings.matterHost;
         document.getElementById('matterPort').value = settings.matterPort;
         document.getElementById('settingsModal').classList.add('active');
     }
@@ -120,11 +123,13 @@ class App {
         const haHost = document.getElementById('haHost').value.trim() || 'homeassistant.local';
         const haPort = document.getElementById('haPort').value.trim() || '8123';
         const haToken = document.getElementById('haToken').value.trim();
+        const matterHost = document.getElementById('matterHost').value.trim() || haHost;
         const matterPort = document.getElementById('matterPort').value.trim() || '5580';
 
         localStorage.setItem('haHost', haHost);
         localStorage.setItem('haPort', haPort);
         localStorage.setItem('haToken', haToken);
+        localStorage.setItem('matterHost', matterHost);
         localStorage.setItem('matterPort', matterPort);
 
         this.closeSettings();
@@ -269,7 +274,7 @@ class App {
         }
 
         const settings = this.getSettings();
-        const url = `ws://${settings.haHost}:${settings.matterPort}/ws`;
+        const url = `ws://${settings.matterHost}:${settings.matterPort}/ws`;
         console.log(`Connecting to ${url}...`);
 
         this.ws = new WebSocket(url);

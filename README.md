@@ -44,8 +44,8 @@ Or drag and drop the file into your browser.
 ### 3. Configure Connection
 
 1. Click the **gear icon** in the top-right corner to open Settings
-2. Enter your **Host** (IP address or hostname of your Home Assistant/Matter Server)
-3. Enter the **Port** for Python Matter Server (default: `5580`)
+2. Enter your **Home Assistant Host** and port (default: `8123`)
+3. Enter your **Python Matter Server Host** and port (default: `5580`)
 4. Enter your **Home Assistant Long-Lived Access Token** (create one in HA under Profile > Security > Long-Lived Access Tokens)
 5. Click **Save**
 
@@ -61,8 +61,8 @@ The app will automatically connect and display your network.
 
 The app connects via WebSocket to:
 
-1. **Python Matter Server** (`ws://host:5580/ws`) - Retrieves all Matter node data including Thread diagnostics
-2. **Home Assistant** (`ws://host:8123/api/websocket`) - Fetches device registry for friendly names
+1. **Python Matter Server** (`ws://matter-host:5580/ws`) - Retrieves all Matter node data including Thread diagnostics
+2. **Home Assistant** (`ws://ha-host:8123/api/websocket`) - Fetches device registry for friendly names
 
 It then:
 - Parses Thread neighbor tables to build network topology
