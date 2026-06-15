@@ -91,6 +91,13 @@ class App {
         };
     }
 
+    getWebSocketUrl(host, port, path) {
+        const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const cleanHost = host.replace(/^(wss?:|https?:)\/\//, '').replace(/\/+$/, '');
+        const portPart = port ? `:${port}` : '';
+        return `${protocol}://${cleanHost}${portPart}${path}`;
+    }
+
     toggleAnonymize() {
         document.body.classList.toggle('anonymized');
         const btn = document.getElementById('anonymizeBtn');
@@ -151,7 +158,7 @@ class App {
                 return;
             }
 
-            const wsURL = `ws://${settings.haHost}:${settings.haPort}/api/websocket`;
+            const wsURL = this.getWebSocketUrl(settings.haHost, settings.haPort, '/api/websocket');
 
             console.log('Connecting to HA WebSocket:', wsURL);
             const ws = new WebSocket(wsURL);
@@ -274,7 +281,7 @@ class App {
         }
 
         const settings = this.getSettings();
-        const url = `ws://${settings.matterHost}:${settings.matterPort}/ws`;
+        const url = this.getWebSocketUrl(settings.matterHost, settings.matterPort, '/ws');
         console.log(`Connecting to ${url}...`);
 
         this.ws = new WebSocket(url);
